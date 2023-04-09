@@ -26,13 +26,13 @@ def select_drive(ignore_problems=False):
         print(path)
     except NameError:
         messagebox.showerror("Error", "Drive not selected")
-        exit()
+        sys.exit()
     if not ignore_problems:
         try:
             check_for_problems(path)
         except BadLocation as e:
             messagebox.showerror("Error", e.args[0])
-            exit()
+            sys.exit()
     return path
 
 
