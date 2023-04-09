@@ -20,9 +20,9 @@ class BadLocation(Exception):
 
 
 def select_drive(ignore_problems=False):
-    drive_selector_gui()
+    drive_selector_gui(ignore_problems)
     try:
-        path = drive + "\\"
+        path = drive
         print(path)
     except NameError:
         messagebox.showerror("Error", "Drive not selected")
@@ -42,10 +42,10 @@ def drive_selected(gui, d):
     drive = d
 
 
-def drive_selector_gui():
+def drive_selector_gui(ignore_problems):
     gui = Tk()
     gui.title("Select Drive")
-    drives = [x[:2] for x in GetLogicalDriveStrings().split('\x00')[:-1]]
+    drives = get_drives(ignore_problems)
     font = ('Consolas', 20, 'bold')
     for i, drv in enumerate(drives):
         Button(text=drv, font=font, width=5, command=lambda d=drv: drive_selected(gui, d)).grid(row=i // 5,
@@ -54,10 +54,42 @@ def drive_selector_gui():
     gui.mainloop()
 
 
+def get_drives(ignore_problems):
+    if ignore_problems:
+        drives = [x[:3] for x in GetLogicalDriveStrings().split('\x00')[:-1]]
+    else:
+        drives = get_eligible_drives()
+        if len(drives) == 0:
+            messagebox.showwarning("Warning", "No eligible drives found, now showing all drives")
+            drives = get_drives(True)
+    return drives
+
+
+def drive_too_big(path):
+    return MAX_DRIVE_SIZE < disk_usage(path).total
+
+
+def wont_fit(path):
+    return REQUIRED_FREE_SPACE > disk_usage(path).free
+
+
+def wrong_filesystem(filesystem):
+    return filesystem not in ALLOWED_FILE_SYSTEMS
+
+
+def get_eligible_drives():
+    drives = []
+    for part in disk_partitions():
+        path = part.mountpoint
+        if not wrong_filesystem(part.fstype) and not drive_too_big(path) and not wont_fit(path):
+            drives.append(path)
+    return drives
+
+
 def check_for_problems(path):
-    if MAX_DRIVE_SIZE < disk_usage(path).total:
+    if drive_too_big(path):
         raise BadLocation("Drive is too big. SD card should be 32GB or smaller!")
-    if REQUIRED_FREE_SPACE > disk_usage(path).free:
+    if wont_fit(path):
         raise BadLocation("The mod needs more space, remove items from your SD or use a different one")
     check_file_system(path)
 
@@ -65,8 +97,8 @@ def check_for_problems(path):
 def check_file_system(path):
     for part in disk_partitions():
         if part.device.startswith(path):
-            if part.fstype not in ALLOWED_FILE_SYSTEMS:
-                raise BadLocation("Wrong file system, format the drive or use a different one")
+            if wrong_filesystem(part.fstype):
+                raise BadLocation("Wrong file system, format the drive as FAT32 or use a different one")
             else:
                 break
 
