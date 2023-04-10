@@ -5,6 +5,7 @@ from psutil import disk_usage, disk_partitions
 from py7zr import SevenZipFile
 from win32api import GetLogicalDriveStrings
 
+VERSION_NUMBER = "v0.2.1"
 MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024
 if getattr(sys, 'frozen', False):
     P_PLUS_ZIP = file = os.path.join(sys._MEIPASS, 'files\\PPlus2.3.2.7z')
@@ -110,8 +111,12 @@ def extract_to_drive(drive):
 
 
 if __name__ == '__main__':
+    print(f"Project+ Wii Installation Wizard {VERSION_NUMBER}")
+    messagebox.showinfo("Project+ Wii Installation Wizard", "Please make sure your SD card is unlocked "
+                                                            "and inserted into your computer.")
     drive = select_drive()
     extract_to_drive(drive)
     messagebox.showinfo("Complete",
                         "Mod extracted, place SD in console and boot through stage builder or homebrew channel. An "
                         "NTSC Brawl disc or backup is required to play")
+    sys.exit()
