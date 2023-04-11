@@ -1,6 +1,6 @@
 import os
 import sys
-from tkinter import messagebox, Tk, Button
+from tkinter import messagebox, Tk, OptionMenu, Button, font, StringVar, BOTTOM
 from psutil import disk_usage, disk_partitions
 from py7zr import SevenZipFile
 from win32api import GetLogicalDriveStrings
@@ -11,7 +11,12 @@ if getattr(sys, 'frozen', False):
     P_PLUS_ZIP = file = os.path.join(sys._MEIPASS, 'files\\PPlus2.3.2.7z')
 else:
     P_PLUS_ZIP = 'PPlus2.3.2.7z'
-# P_PLUS_ZIP = 'test.7z'
+""""
+if getattr(sys, 'frozen', False):
+    P_PLUS_ZIP = file = os.path.join(sys._MEIPASS, 'files\\test.7z')
+else:
+    P_PLUS_ZIP = 'test.7z'
+"""
 REQUIRED_FREE_SPACE = 1766703104  # size in bytes of the extracted zip
 ALLOWED_FILE_SYSTEMS = {"FAT32", "FAT", "FAT16"}
 
@@ -43,7 +48,7 @@ def drive_selected(gui, d):
     drive = d
 
 
-def drive_selector_gui(ignore_problems):
+def drive_selector_gui_old(ignore_problems):
     gui = Tk()
     gui.title("Select Drive")
     drives = get_drives(ignore_problems)
@@ -52,6 +57,26 @@ def drive_selector_gui(ignore_problems):
         Button(text=drv, font=font, width=5, command=lambda d=drv: drive_selected(gui, d)).grid(row=i // 5,
                                                                                                 column=i % 5,
                                                                                                 padx=8, pady=5)
+    gui.mainloop()
+
+
+def drive_selector_gui(ignore_problems):
+    gui = Tk()
+    gui.title("Select Drive")
+    drives = get_drives(ignore_problems)
+    gui.geometry('250x250')
+    value_inside = StringVar(gui)
+    value_inside.set("Select a drive")
+    segoe_font = font.Font(family='Segoe UI', size=18)
+    menu = OptionMenu(gui, value_inside, *drives)
+    widget = gui.nametowidget(menu.menuname)
+    menu.config(font=segoe_font, width=50)
+    widget.config(font=segoe_font)
+    menu.pack()
+    gui.focus_force()
+    select_button = Button(gui, text="Select", font=segoe_font, width=10,
+                           command=lambda: drive_selected(gui, value_inside.get()))
+    select_button.pack(side=BOTTOM, pady=5)
     gui.mainloop()
 
 
@@ -110,13 +135,21 @@ def extract_to_drive(drive):
         zip.extractall(drive)
 
 
-if __name__ == '__main__':
+def welcome():
     print(f"Project+ Wii Installation Wizard {VERSION_NUMBER}")
+    root = Tk()
+    root.overrideredirect(True)
+    root.withdraw()
     messagebox.showinfo("Project+ Wii Installation Wizard", "Please make sure your SD card is unlocked "
                                                             "and inserted into your computer.")
+    root.destroy()
+
+
+if __name__ == '__main__':
+    welcome()
     drive = select_drive()
     extract_to_drive(drive)
     messagebox.showinfo("Complete",
-                        "Mod extracted, place SD in console and boot through stage builder or homebrew channel. An "
+                        "Mod extracted; place SD in console and boot through stage builder or homebrew channel. An "
                         "NTSC Brawl disc or backup is required to play")
     sys.exit()
