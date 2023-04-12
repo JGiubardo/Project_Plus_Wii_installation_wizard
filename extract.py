@@ -147,7 +147,8 @@ def get_eligible_drives() -> list:
     drives = []
     for part in disk_partitions():
         path = part.mountpoint
-        if not wrong_filesystem(part.fstype) and not drive_too_big(path) and not wont_fit(path) and not drive_not_removable(path):
+        if not wrong_filesystem(part.fstype) and not drive_too_big(path) and \
+                not wont_fit(path) and not drive_not_removable(path):
             drives.append(path)
     return drives
 
