@@ -8,6 +8,9 @@ from win32file import GetDriveType
 
 VERSION_NUMBER = "v0.3.0"
 MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024
+REQUIRED_FREE_SPACE = 1766703104  # size in bytes of the extracted zip
+ALLOWED_FILE_SYSTEMS = {"FAT32", "FAT", "FAT16"}
+REMOVABLE_DRIVE_TYPE = 2   # GetDriveType returns 2 if the drive is removable
 
 if getattr(sys, 'frozen', False):
     P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files\\PPlus2.3.2.7z')
@@ -19,9 +22,6 @@ else:
 P_PLUS_ZIP = 'test.7z'   # lets you test the application with a test file to eliminate time to extract to the SD
 PLUS_ICON = 'pplus.ico'
 """
-REQUIRED_FREE_SPACE = 1766703104  # size in bytes of the extracted zip
-ALLOWED_FILE_SYSTEMS = {"FAT32", "FAT", "FAT16"}
-REMOVABLE_DRIVE_TYPE = 2   # Get_Drive_Type returns 2 if the drive is removable
 
 
 class BadLocation(Exception):
@@ -33,7 +33,7 @@ def select_drive(ignore_problems=False):
     try:
         path = drive
         print(path)
-    except NameError:
+    except NameError:  # window was closed before a drive was selected
         messagebox.showerror("Error", "Drive not selected")
         sys.exit()
     if not ignore_problems:
@@ -74,15 +74,15 @@ def drive_selector_gui(ignore_problems):
     segoe_font = font.Font(family='Segoe UI', size=18)
     menu = OptionMenu(gui, value_inside, *drives)
     widget = gui.nametowidget(menu.menuname)
-    menu.config(font=segoe_font, width=40)
+    menu.config(font=segoe_font, width=12)
     widget.config(font=segoe_font)
     menu.pack()
     gui.focus_force()
     drive_info_text = StringVar(gui)
     drive_info_text.set("No drive selected")
-    textbox = Label(gui, textvariable=drive_info_text, font=segoe_font, width=20, height=4)
+    textbox = Label(gui, textvariable=drive_info_text, font=segoe_font, width=20, height=5)
     textbox.pack()
-    select_button = Button(gui, text="Select", font=segoe_font, width=5,
+    select_button = Button(gui, text="Select", font=segoe_font, width=7,
                            command=lambda: drive_selected(gui, value_inside.get()))
     select_button.pack(side=BOTTOM, pady=5)
     value_inside.trace('w', lambda *args: display_drive_info(drive_info_text, value_inside.get()))
@@ -104,8 +104,9 @@ def display_drive_info(drive_info_text: StringVar, drive_selected):
         type_text = "Drive is not removable"
     drive_info_text.set(f"Total Size: {size_in_gb} GB\n"
                         f"Free Space: {space_in_gb} GB\n"
-                        f"Filesystem: {filesystem}\n"
-                        f"{type_text}")
+                        f"Format: {filesystem}\n"
+                        f"{type_text}\n"
+                        ) # "\N{check mark}\N{heavy check mark}\N{cross mark}\N{prohibited sign}"
 
 
 def drive_info(path):
@@ -131,8 +132,23 @@ def drive_too_big(path) -> bool:
     return MAX_DRIVE_SIZE < disk_usage(path).total
 
 
+def too_big_for_hackless(path) -> bool:
+    return disk_usage(path).total > (2*1024*1024*1024)
+
+
+def too_big_for_hackless_message(path) -> str:
+    if too_big_for_hackless(path):
+        return ""
+    else:
+        return "stage builder or "
+
+
 def wont_fit(path) -> bool:
     return REQUIRED_FREE_SPACE > disk_usage(path).free
+
+
+def wont_fit_ever(path) -> bool:
+    return REQUIRED_FREE_SPACE > disk_usage(path).total
 
 
 def wrong_filesystem(filesystem) -> bool:
@@ -156,8 +172,10 @@ def get_eligible_drives() -> list:
 def check_for_problems(path):
     if drive_too_big(path):
         raise BadLocation("Drive is too big. SD card should be 32GB or smaller!")
+    if wont_fit_ever(path):
+        raise BadLocation("The mod needs more space. Use a different SD.")
     if wont_fit(path):
-        raise BadLocation("The mod needs more space, remove items from your SD or use a different one.")
+        raise BadLocation("The mod needs more space. Remove items from your SD or use a different one.")
     if drive_not_removable(path):
         raise BadLocation("Drive isn't a removable device. Should be installed on an SD card.")
     check_file_system(path)
@@ -167,7 +185,7 @@ def check_file_system(path):
     for part in disk_partitions():
         if part.device.startswith(path):
             if wrong_filesystem(part.fstype):
-                raise BadLocation("Wrong file system, format the drive as FAT32 or use a different one.")
+                raise BadLocation("Wrong filesystem. Format the drive as FAT32 or use a different one.")
             else:
                 break
 
@@ -193,6 +211,6 @@ if __name__ == '__main__':
     drive = select_drive()
     extract_to_drive(drive)
     messagebox.showinfo("Complete",
-                        "Mod extracted; place SD in console and boot through stage builder or homebrew channel. An "
-                        "NTSC Brawl disc or backup is required to play.")
+                        f"Mod extracted; place SD in console and boot through {too_big_for_hackless_message(drive)}"
+                        "homebrew channel. An NTSC Brawl disc or backup is required to play.")
     sys.exit()
