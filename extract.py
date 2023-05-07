@@ -111,18 +111,6 @@ def drive_selected(gui, d):
     drive = d
 
 
-def drive_selector_gui_old(ignore_problems):
-    gui = Tk()
-    gui.title("Select Drive")
-    drives = get_drives(ignore_problems)
-    font = ('Consolas', 20, 'bold')
-    for i, drv in enumerate(drives):
-        Button(text=drv, font=font, width=5, command=lambda d=drv: drive_selected(gui, d)).grid(row=i // 5,
-                                                                                                column=i % 5,
-                                                                                                padx=8, pady=5)
-    gui.mainloop()
-
-
 def drive_selector_gui(ignore_problems):  # TODO add indicator in UI for problems
     gui = Tk()
     gui.title("Select Drive")
