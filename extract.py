@@ -2,6 +2,7 @@ import os
 import sys
 import requests
 import webbrowser
+from xml.dom import minidom
 from packaging import version
 from tkinter import messagebox, Tk, OptionMenu, Button, font, StringVar, Label, BOTTOM
 from psutil import disk_usage, disk_partitions
@@ -52,16 +53,15 @@ def check_installer_updates():
 
 
 def check_p_plus_updates(drive):
-    path = os.path.join(drive, "Project+\\version.txt")
+    path = os.path.join(drive, "apps\\projplus\\meta.xml")
     if p_plus_installed(drive):
         if os.path.exists(path):
-            with open(path, 'r') as f:
-                text = f.read()
-                f.close()
-                if version.parse(text) >= version.parse(P_PLUS_VERSION_NUMBER):
-                    ask_to_delete_or_skip(drive, "Project+ is up to date.")
-                else:
-                    ask_to_delete_or_skip(drive, "Old installation detected.")
+            file = minidom.parse(path)
+            installed_version = file.getElementsByTagName("version")[0].firstChild.wholeText
+            if version.parse(installed_version) >= version.parse(P_PLUS_VERSION_NUMBER):
+                ask_to_delete_or_skip(drive, "Project+ is up to date.")
+            else:
+                ask_to_delete_or_skip(drive, "Old installation detected.")
         else:           # P+ is installed but can't determine version
             ask_to_delete_or_skip(drive, "Unknown version detected.")
 
@@ -244,20 +244,8 @@ def check_file_system(path):
 
 def extract_to_drive(drive):
     print("Extracting...")
-    create_version_file(drive)
     with SevenZipFile(P_PLUS_ZIP, 'r') as zip:
         zip.extractall(drive)
-
-
-def create_version_file(drive):
-    try:
-        os.mkdir(os.path.join(drive, "Project+"))
-    except FileExistsError:
-        pass
-    path = os.path.join(drive, "Project+\\version.txt")
-    with open(path, 'w') as f:
-        f.write(P_PLUS_VERSION_NUMBER)
-        f.close()
 
 
 def welcome():
