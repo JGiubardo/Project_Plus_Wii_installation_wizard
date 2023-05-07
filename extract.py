@@ -1,16 +1,23 @@
 import os
 import sys
+import requests
+import webbrowser
+from packaging import version
 from tkinter import messagebox, Tk, OptionMenu, Button, font, StringVar, Label, BOTTOM
 from psutil import disk_usage, disk_partitions
 from py7zr import SevenZipFile
 from win32api import GetLogicalDriveStrings
 from win32file import GetDriveType
+from shutil import rmtree
 
-VERSION_NUMBER = "v0.3.0"
+VERSION_NUMBER = "v0.3.1"
+P_PLUS_VERSION_NUMBER = "2.3.2"
+RELEASES_PAGE = "https://github.com/JGiubardo/Project_Plus_Wii_installation_wizard/releases/latest"
+RELEASES_PAGE_API = "https://api.github.com/repos/JGiubardo/Project_Plus_Wii_installation_wizard/releases"
 MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024
 REQUIRED_FREE_SPACE = 1766703104  # size in bytes of the extracted zip
 ALLOWED_FILE_SYSTEMS = {"FAT32", "FAT", "FAT16"}
-REMOVABLE_DRIVE_TYPE = 2   # GetDriveType returns 2 if the drive is removable
+REMOVABLE_DRIVE_TYPE = 2  # GetDriveType returns 2 if the drive is removable
 
 if getattr(sys, 'frozen', False):
     P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files\\PPlus2.3.2.7z')
@@ -26,6 +33,59 @@ PLUS_ICON = 'pplus.ico'
 
 class BadLocation(Exception):
     pass
+
+# TODO fix UI boxes so that there aren't any empty floating boxes
+
+
+def check_installer_updates():
+    try:
+        response = requests.get(RELEASES_PAGE_API)
+    except requests.exceptions.RequestException:  # if there's a problem, skip checking for an update
+        return
+    latest = response.json()[0]["tag_name"]
+    if version.parse(latest) > version.parse(VERSION_NUMBER):
+        result = messagebox.askyesno("Update available", "An update for the installer is available. "
+                                                         "Would you like to go to the download page?")
+        if result:
+            webbrowser.open(RELEASES_PAGE)
+            sys.exit()
+
+
+def check_p_plus_updates(drive):
+    path = os.path.join(drive, "Project+\\version.txt")
+    if p_plus_installed(drive):
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                text = f.read()
+                f.close()
+                if version.parse(text) >= version.parse(P_PLUS_VERSION_NUMBER):
+                    ask_to_delete_or_skip(drive, "Project+ is up to date.")
+                else:
+                    ask_to_delete_or_skip(drive, "Old installation detected.")
+        else:           # P+ is installed but can't determine version
+            ask_to_delete_or_skip(drive, "Unknown version detected.")
+
+
+def p_plus_installed(drive) -> bool:
+    folder_path = os.path.join(drive, "Project+\\")
+    return os.path.exists(folder_path)
+
+
+def delete_files(drive):
+    rmtree(os.path.join(drive, "Project+\\"), True)
+    rmtree(os.path.join(drive, "private\\wii\\app\\RSBE\\"), True)
+    rmtree(os.path.join(drive, "apps\\projplus\\"), True)
+    elf_path = os.path.join(drive, "boot.elf")
+    if os.path.isfile(elf_path):
+        os.remove(elf_path)
+
+
+def ask_to_delete_or_skip(drive, current_status):
+    answer = messagebox.askokcancel("P+ installation found", f"{current_status} Delete all files and reinstall P+?")
+    if answer:
+        delete_files(drive)
+    else:
+        sys.exit()
 
 
 def select_drive(ignore_problems=False):
@@ -63,7 +123,7 @@ def drive_selector_gui_old(ignore_problems):
     gui.mainloop()
 
 
-def drive_selector_gui(ignore_problems):
+def drive_selector_gui(ignore_problems):  # TODO add indicator in UI for problems
     gui = Tk()
     gui.title("Select Drive")
     gui.iconbitmap(PLUS_ICON)
@@ -90,7 +150,7 @@ def drive_selector_gui(ignore_problems):
 
 
 def gigabyte_string(size) -> str:
-    gbs = size / (1024*1024*1024)
+    gbs = size / (1024 * 1024 * 1024)
     return f"{gbs:.2f}"
 
 
@@ -106,7 +166,7 @@ def display_drive_info(drive_info_text: StringVar, drive_selected):
                         f"Free Space: {space_in_gb} GB\n"
                         f"Format: {filesystem}\n"
                         f"{type_text}\n"
-                        ) # "\N{check mark}\N{heavy check mark}\N{cross mark}\N{prohibited sign}"
+                        )  # "\N{check mark}\N{heavy check mark}\N{cross mark}\N{prohibited sign}"
 
 
 def drive_info(path):
@@ -122,7 +182,7 @@ def get_drives(ignore_problems):
         drives = [x[:3] for x in GetLogicalDriveStrings().split('\x00')[:-1]]
     else:
         drives = get_eligible_drives()
-        if len(drives) == 0:
+        if not drives:
             messagebox.showwarning("Warning", "No eligible drives found, now showing all drives")
             drives = get_drives(True)
     return drives
@@ -133,7 +193,7 @@ def drive_too_big(path) -> bool:
 
 
 def too_big_for_hackless(path) -> bool:
-    return disk_usage(path).total > (2*1024*1024*1024)
+    return disk_usage(path).total > (2 * 1024 * 1024 * 1024)
 
 
 def too_big_for_hackless_message(path) -> str:
@@ -159,13 +219,17 @@ def drive_not_removable(path) -> bool:
     return GetDriveType(path) != REMOVABLE_DRIVE_TYPE
 
 
-def get_eligible_drives() -> list:
+def get_eligible_drives() -> list:     # TODO if everything is right except free space, check if P+ is already installed
     drives = []
     for part in disk_partitions():
         path = part.mountpoint
         if not wrong_filesystem(part.fstype) and not drive_too_big(path) and \
-                not wont_fit(path) and not drive_not_removable(path):
-            drives.append(path)
+                not wont_fit_ever(path) and not drive_not_removable(path):
+            if wont_fit(path):
+                if p_plus_installed(path):
+                    drives.append(path)
+            else:
+                drives.append(path)
     return drives
 
 
@@ -174,7 +238,7 @@ def check_for_problems(path):
         raise BadLocation("Drive is too big. SD card should be 32GB or smaller!")
     if wont_fit_ever(path):
         raise BadLocation("The mod needs more space. Use a different SD.")
-    if wont_fit(path):
+    if wont_fit(path) and not p_plus_installed(path):
         raise BadLocation("The mod needs more space. Remove items from your SD or use a different one.")
     if drive_not_removable(path):
         raise BadLocation("Drive isn't a removable device. Should be installed on an SD card.")
@@ -192,8 +256,20 @@ def check_file_system(path):
 
 def extract_to_drive(drive):
     print("Extracting...")
+    create_version_file(drive)
     with SevenZipFile(P_PLUS_ZIP, 'r') as zip:
         zip.extractall(drive)
+
+
+def create_version_file(drive):
+    try:
+        os.mkdir(os.path.join(drive, "Project+"))
+    except FileExistsError:
+        pass
+    path = os.path.join(drive, "Project+\\version.txt")
+    with open(path, 'w') as f:
+        f.write(P_PLUS_VERSION_NUMBER)
+        f.close()
 
 
 def welcome():
@@ -207,8 +283,10 @@ def welcome():
 
 
 if __name__ == '__main__':
+    check_installer_updates()
     welcome()
     drive = select_drive()
+    check_p_plus_updates(drive)
     extract_to_drive(drive)
     messagebox.showinfo("Complete",
                         f"Mod extracted; place SD in console and boot through {too_big_for_hackless_message(drive)}"
