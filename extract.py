@@ -63,9 +63,9 @@ def check_p_plus_updates(drive):
             if version.parse(installed_version) >= version.parse(P_PLUS_VERSION_NUMBER):
                 ask_to_delete_or_skip(drive, "Project+ is up to date.")
             else:
-                ask_to_delete_or_skip(drive, "Old installation detected.")
+                ask_to_delete_or_skip(drive, "Outdated P+ installation detected.")
         else:           # P+ is installed but can't determine version
-            ask_to_delete_or_skip(drive, "Unknown version detected.")
+            ask_to_delete_or_skip(drive, "Unknown P+ version detected.")
 
 
 def p_plus_installed(drive) -> bool:
@@ -241,7 +241,7 @@ def check_for_problems(path):
     if wont_fit_ever(path):
         raise BadLocation("The mod needs more space. Use a different SD.")
     if wont_fit(path) and not p_plus_installed(path):
-        raise BadLocation("The mod needs more space. Remove items from your SD or use a different one.")
+        raise BadLocation("The mod needs more space. Remove items from your SD or use a different SD.")
     if drive_not_removable(path):
         raise BadLocation("Drive isn't a removable device. Should be installed on an SD card.")
     check_file_system(path)
