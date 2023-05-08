@@ -28,7 +28,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='P_Plus_Wizard_0.3.0',
+    name='P_Plus_Wizard_0.3.1',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
