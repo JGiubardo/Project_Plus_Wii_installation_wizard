@@ -13,7 +13,7 @@ from shutil import rmtree
 
 VERSION_NUMBER = "v0.3.1"
 P_PLUS_VERSION_NUMBER = "2.3.2"
-RELEASES_PAGE = "https://github.com/JGiubardo/Project_Plus_Wii_installation_wizard/releases/latest"
+RELEASES_PAGE = "https://github.com/JGiubardo/Project_Plus_Wii_installation_wizard/releases/"
 RELEASES_PAGE_API = "https://api.github.com/repos/JGiubardo/Project_Plus_Wii_installation_wizard/releases"
 MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024
 REQUIRED_FREE_SPACE = 1766703104  # size in bytes of the extracted zip
@@ -35,8 +35,6 @@ PLUS_ICON = 'pplus.ico'
 class BadLocation(Exception):
     pass
 
-# TODO fix UI boxes so that there aren't any empty floating boxes
-
 
 def check_installer_updates():
     try:
@@ -45,8 +43,12 @@ def check_installer_updates():
         return
     latest = response.json()[0]["tag_name"]
     if version.parse(latest) > version.parse(VERSION_NUMBER):
+        root = Tk()
+        root.overrideredirect(True)
+        root.withdraw()
         result = messagebox.askyesno("Update available", "An update for the installer is available. "
                                                          "Would you like to go to the download page?")
+        root.destroy()
         if result:
             webbrowser.open(RELEASES_PAGE)
             sys.exit()
@@ -81,7 +83,11 @@ def delete_files(drive):
 
 
 def ask_to_delete_or_skip(drive, current_status):
+    root = Tk()
+    root.overrideredirect(True)
+    root.withdraw()
     answer = messagebox.askokcancel("P+ installation found", f"{current_status} Delete all files and reinstall P+?")
+    root.destroy()
     if answer:
         delete_files(drive)
     else:
@@ -94,13 +100,21 @@ def select_drive(ignore_problems=False):
         path = drive
         print(path)
     except NameError:  # window was closed before a drive was selected
+        root = Tk()
+        root.overrideredirect(True)
+        root.withdraw()
         messagebox.showerror("Error", "Drive not selected")
+        root.destroy()
         sys.exit()
     if not ignore_problems:
         try:
             check_for_problems(path)
         except BadLocation as e:
+            root = Tk()
+            root.overrideredirect(True)
+            root.withdraw()
             messagebox.showerror("Error", e.args[0])
+            root.destroy()
             sys.exit()
     return path
 
@@ -154,7 +168,7 @@ def display_drive_info(drive_info_text: StringVar, drive_selected):
                         f"Free Space: {space_in_gb} GB\n"
                         f"Format: {filesystem}\n"
                         f"{type_text}\n"
-                        )  # "\N{check mark}\N{heavy check mark}\N{cross mark}\N{prohibited sign}"
+                        )  # emoji test "\N{check mark}\N{heavy check mark}\N{cross mark}\N{prohibited sign}"
 
 
 def drive_info(path):
@@ -207,14 +221,14 @@ def drive_not_removable(path) -> bool:
     return GetDriveType(path) != REMOVABLE_DRIVE_TYPE
 
 
-def get_eligible_drives() -> list:     # TODO if everything is right except free space, check if P+ is already installed
+def get_eligible_drives() -> list:
     drives = []
     for part in disk_partitions():
         path = part.mountpoint
         if not wrong_filesystem(part.fstype) and not drive_too_big(path) and \
                 not wont_fit_ever(path) and not drive_not_removable(path):
             if wont_fit(path):
-                if p_plus_installed(path):
+                if p_plus_installed(path):      # drive would be compatible if P+ was deleted
                     drives.append(path)
             else:
                 drives.append(path)
@@ -235,7 +249,7 @@ def check_for_problems(path):
 
 def check_file_system(path):
     for part in disk_partitions():
-        if part.device.startswith(path):
+        if part.device.startswith(path):    # finds the drive the path points to
             if wrong_filesystem(part.fstype):
                 raise BadLocation("Wrong filesystem. Format the drive as FAT32 or use a different one.")
             else:
@@ -264,7 +278,11 @@ if __name__ == '__main__':
     drive = select_drive()
     check_p_plus_updates(drive)
     extract_to_drive(drive)
+    root = Tk()
+    root.overrideredirect(True)
+    root.withdraw()
     messagebox.showinfo("Complete",
                         f"Mod extracted; place SD in console and boot through {too_big_for_hackless_message(drive)}"
                         "homebrew channel. An NTSC Brawl disc or backup is required to play.")
+    root.destroy()
     sys.exit()
