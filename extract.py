@@ -218,7 +218,29 @@ def wrong_filesystem(filesystem) -> bool:
 
 
 def drive_not_removable(path) -> bool:
+    if os.name == "nt":         # Windows
+        return drive_not_removable_windows(path)
+    elif os.name == "posix":    # Linux
+        return  drive_not_removable_linux(path)
+    else:
+        return False
+
+
+def drive_not_removable_windows(path) -> bool:
     return GetDriveType(path) != REMOVABLE_DRIVE_TYPE
+
+
+def drive_not_removable_linux(path) -> bool:        # TODO pass the block device to this instead of the mount point
+    # Check if the path is a block device.
+    try:
+        with open("/sys/class/block/{}/removable".format(path), "r") as f:
+            removable = f.read().strip()
+            f.close()
+    except FileNotFoundError:
+        return False
+
+    # Return True if the path is a block device and the device is removable.
+    return removable == "1"
 
 
 def get_eligible_drives() -> list:
