@@ -11,20 +11,20 @@ from win32api import GetLogicalDriveStrings
 from win32file import GetDriveType
 from shutil import rmtree
 
-VERSION_NUMBER = "v0.3.1"
-P_PLUS_VERSION_NUMBER = "2.3.2"
+VERSION_NUMBER = "v0.4.0"
+P_PLUS_VERSION_NUMBER = "2.4.0"
 RELEASES_PAGE = "https://github.com/JGiubardo/Project_Plus_Wii_installation_wizard/releases/"
 RELEASES_PAGE_API = "https://api.github.com/repos/JGiubardo/Project_Plus_Wii_installation_wizard/releases"
-MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024
-REQUIRED_FREE_SPACE = 1766703104  # size in bytes of the extracted zip
+MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024    # 32 GB in bytes
+REQUIRED_FREE_SPACE = 1766703104    # size in bytes of the extracted zip
 ALLOWED_FILE_SYSTEMS = {"FAT32", "FAT", "FAT16"}
-REMOVABLE_DRIVE_TYPE = 2  # GetDriveType returns 2 if the drive is removable
+REMOVABLE_DRIVE_TYPE = 2    # GetDriveType returns 2 if the drive is removable
 
-if getattr(sys, 'frozen', False):
-    P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files\\PPlus2.3.2.7z')
-    PLUS_ICON = os.path.join(sys._MEIPASS, 'files\\pplus.ico')
-else:
-    P_PLUS_ZIP = 'PPlus2.3.2.7z'
+if getattr(sys, 'frozen', False):       # The program is being run as a pyinstaller executable
+    P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files", "PPlus2.4.0.7z')
+    PLUS_ICON = os.path.join(sys._MEIPASS, 'files", "pplus.ico')
+else:                                   # The program is being run as a standalone python file
+    P_PLUS_ZIP = 'PPlus2.4.0.7z'
     PLUS_ICON = 'pplus.ico'
 """
 P_PLUS_ZIP = 'test.7z'   # lets you test the application with a test file to eliminate time to extract to the SD
@@ -55,7 +55,7 @@ def check_installer_updates():
 
 
 def check_p_plus_updates(drive):
-    path = os.path.join(drive, "apps\\projplus\\meta.xml")
+    path = os.path.join(drive, "apps", "projplus", "meta.xml")
     if p_plus_installed(drive):
         if os.path.exists(path):
             file = minidom.parse(path)
@@ -69,20 +69,21 @@ def check_p_plus_updates(drive):
 
 
 def p_plus_installed(drive) -> bool:
-    folder_path = os.path.join(drive, "Project+\\")
+    folder_path = os.path.join(drive, "Project+", "")
     return os.path.exists(folder_path)
 
 
 def delete_files(drive):
-    rmtree(os.path.join(drive, "Project+\\"), True)
-    rmtree(os.path.join(drive, "private\\wii\\app\\RSBE\\"), True)
-    rmtree(os.path.join(drive, "apps\\projplus\\"), True)
+    rmtree(os.path.join(drive, "Project+", ""), True)
+    rmtree(os.path.join(drive, "private", "wii", "app", "RSBE", ""), True)
+    rmtree(os.path.join(drive, "apps", "projplus", ""), True)
     elf_path = os.path.join(drive, "boot.elf")
     if os.path.isfile(elf_path):
         os.remove(elf_path)
 
 
 def ask_to_delete_or_skip(drive, current_status):
+    """If P+ is already installed, gives the option to delete files or exit."""
     root = Tk()
     root.overrideredirect(True)
     root.withdraw()
@@ -94,12 +95,12 @@ def ask_to_delete_or_skip(drive, current_status):
         sys.exit()
 
 
-def select_drive(ignore_problems=False):
+def select_drive(ignore_problems=False) -> str:
     drive_selector_gui(ignore_problems)
     try:
-        path = drive
+        path = drive    # drive_selected has assigned the global variable
         print(path)
-    except NameError:  # window was closed before a drive was selected
+    except NameError:   # window was closed before a drive was selected
         root = Tk()
         root.overrideredirect(True)
         root.withdraw()
@@ -109,7 +110,7 @@ def select_drive(ignore_problems=False):
     if not ignore_problems:
         try:
             check_for_problems(path)
-        except BadLocation as e:
+        except BadLocation as e:    # Incompatible drive
             root = Tk()
             root.overrideredirect(True)
             root.withdraw()
@@ -120,6 +121,7 @@ def select_drive(ignore_problems=False):
 
 
 def drive_selected(gui, d):
+    """After a drive is selected, make it a global drive and destroy the gui"""
     gui.destroy()
     global drive
     drive = d
@@ -129,21 +131,26 @@ def drive_selector_gui(ignore_problems):  # TODO add indicator in UI for problem
     gui = Tk()
     gui.title("Select Drive")
     gui.iconbitmap(PLUS_ICON)
-    drives = get_drives(ignore_problems)
     gui.geometry('300x300')
+    drives = get_drives(ignore_problems)
     value_inside = StringVar(gui)
     value_inside.set("Select a drive")
-    segoe_font = font.Font(family='Segoe UI', size=18)
     menu = OptionMenu(gui, value_inside, *drives)
     widget = gui.nametowidget(menu.menuname)
+
+    # Formatting stuff
+    segoe_font = font.Font(family='Segoe UI', size=18)
     menu.config(font=segoe_font, width=12)
     widget.config(font=segoe_font)
     menu.pack()
     gui.focus_force()
+
     drive_info_text = StringVar(gui)
     drive_info_text.set("No drive selected")
     textbox = Label(gui, textvariable=drive_info_text, font=segoe_font, width=20, height=5)
     textbox.pack()
+
+    # When the button is pressed, send the selected drive
     select_button = Button(gui, text="Select", font=segoe_font, width=7,
                            command=lambda: drive_selected(gui, value_inside.get()))
     select_button.pack(side=BOTTOM, pady=5)
@@ -151,12 +158,14 @@ def drive_selector_gui(ignore_problems):  # TODO add indicator in UI for problem
     gui.mainloop()
 
 
-def gigabyte_string(size) -> str:
+def gigabyte_string(size: int) -> str:
+    """Takes the size of a drive in bytes and returns a String in the format of X.XX"""
     gbs = size / (1024 * 1024 * 1024)
     return f"{gbs:.2f}"
 
 
 def display_drive_info(drive_info_text: StringVar, drive_selected):
+    """Edits drive_info_text to show basic information about drive_selected"""
     size, free_space, filesystem, drive_type = drive_info(drive_selected)
     size_in_gb = gigabyte_string(size)
     space_in_gb = gigabyte_string(free_space)
@@ -171,7 +180,7 @@ def display_drive_info(drive_info_text: StringVar, drive_selected):
                         )  # emoji test "\N{check mark}\N{heavy check mark}\N{cross mark}\N{prohibited sign}"
 
 
-def drive_info(path):
+def drive_info(path) -> (int, int, str, any):
     for part in disk_partitions():
         if part.device.startswith(path):
             filesystem = part.fstype
@@ -221,7 +230,7 @@ def drive_not_removable(path) -> bool:
     if os.name == "nt":         # Windows
         return drive_not_removable_windows(path)
     elif os.name == "posix":    # Linux
-        return  drive_not_removable_linux(path)
+        return drive_not_removable_linux(path)
     else:
         return False
 
@@ -258,14 +267,15 @@ def get_eligible_drives() -> list:
 
 
 def check_for_problems(path):
+    """Raises an Exception if there's an issue with the drive's compatibility with P+"""
     if drive_too_big(path):
-        raise BadLocation("Drive is too big. SD card should be 32GB or smaller!")
+        raise BadLocation("Drive is too big. SD card should be 32GB or smaller! Use a smaller SD.")
     if wont_fit_ever(path):
-        raise BadLocation("The mod needs more space. Use a different SD.")
+        raise BadLocation("The mod needs more space. Use a larger SD.")
     if wont_fit(path) and not p_plus_installed(path):
-        raise BadLocation("The mod needs more space. Remove items from your SD or use a different SD.")
+        raise BadLocation("The mod needs more space. Remove items from your SD or use a larger SD.")
     if drive_not_removable(path):
-        raise BadLocation("Drive isn't a removable device. Should be installed on an SD card.")
+        raise BadLocation("Drive isn't a removable device. The mod should be installed on an SD card.")
     check_file_system(path)
 
 
@@ -273,7 +283,7 @@ def check_file_system(path):
     for part in disk_partitions():
         if part.device.startswith(path):    # finds the drive the path points to
             if wrong_filesystem(part.fstype):
-                raise BadLocation("Wrong filesystem. Format the drive as FAT32 or use a different one.")
+                raise BadLocation("Wrong filesystem. Format the drive as FAT32 or use a different SD.")
             else:
                 break
 
