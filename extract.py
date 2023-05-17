@@ -181,6 +181,7 @@ def display_drive_info(drive_info_text: StringVar, drive_selected):
 
 
 def drive_info(path) -> (int, int, str, any):
+    filesystem = None
     for part in disk_partitions():
         if part.device.startswith(path):
             filesystem = part.fstype
