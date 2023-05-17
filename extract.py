@@ -21,8 +21,8 @@ ALLOWED_FILE_SYSTEMS = {"FAT32", "FAT", "FAT16"}
 REMOVABLE_DRIVE_TYPE = 2    # GetDriveType returns 2 if the drive is removable
 
 if getattr(sys, 'frozen', False):       # The program is being run as a pyinstaller executable
-    P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files", "PPlus2.4.0.7z')
-    PLUS_ICON = os.path.join(sys._MEIPASS, 'files", "pplus.ico')
+    P_PLUS_ZIP = os.path.join(sys._MEIPASS, "files", "PPlus2.4.0.7z")
+    PLUS_ICON = os.path.join(sys._MEIPASS, "files", "pplus.ico")
 else:                                   # The program is being run as a standalone python file
     P_PLUS_ZIP = 'PPlus2.4.0.7z'
     PLUS_ICON = 'pplus.ico'
