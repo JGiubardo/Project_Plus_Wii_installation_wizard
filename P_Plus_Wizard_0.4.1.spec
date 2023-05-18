@@ -7,7 +7,7 @@ block_cipher = None
 a = Analysis(
     ['extract.py'],
     pathex=[],
-    binaries=[('PPlus2.4.0.7z', 'files')],
+    binaries=[('PPlus2.4.0.1.7z', 'files')],
     datas=[('pplus.ico', 'files')],
     hiddenimports=[],
     hookspath=[],
@@ -28,7 +28,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='P_Plus_Wizard_0.4.0',
+    name='P_Plus_Wizard_0.4.1',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

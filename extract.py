@@ -11,18 +11,18 @@ from win32api import GetLogicalDriveStrings
 from win32file import GetDriveType
 from shutil import rmtree
 
-VERSION_NUMBER = "v0.4.0"
-P_PLUS_VERSION_NUMBER = "2.4.0"
+VERSION_NUMBER = 'v0.4.1'
+P_PLUS_VERSION_NUMBER = '2.4.0.1'
 RELEASES_PAGE = "https://github.com/JGiubardo/Project_Plus_Wii_installation_wizard/releases/"
 RELEASES_PAGE_API = "https://api.github.com/repos/JGiubardo/Project_Plus_Wii_installation_wizard/releases"
 MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024    # 32 GB in bytes
 REQUIRED_FREE_SPACE = 1791201280     # size in bytes of the extracted zip
-ALLOWED_FILE_SYSTEMS = {"FAT32", "FAT", "FAT16"}
+ALLOWED_FILE_SYSTEMS = {'FAT32', 'FAT', 'FAT16'}
 REMOVABLE_DRIVE_TYPE = 2    # GetDriveType returns 2 if the drive is removable
 
 if getattr(sys, 'frozen', False):       # The program is being run as a pyinstaller executable
-    P_PLUS_ZIP = os.path.join(sys._MEIPASS, "files", "PPlus2.4.0.7z")
-    PLUS_ICON = os.path.join(sys._MEIPASS, "files", "pplus.ico")
+    P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files', 'PPlus2.4.0.7z')
+    PLUS_ICON = os.path.join(sys._MEIPASS, 'files', 'pplus.ico')
 else:                                   # The program is being run as a standalone python file
     P_PLUS_ZIP = 'PPlus2.4.0.7z'
     PLUS_ICON = 'pplus.ico'
@@ -41,7 +41,7 @@ def check_installer_updates():
         response = requests.get(RELEASES_PAGE_API)
     except requests.exceptions.RequestException:  # if there's a problem, skip checking for an update
         return
-    latest = response.json()[0]["tag_name"]
+    latest = response.json()[0]['tag_name']
     if version.parse(latest) > version.parse(VERSION_NUMBER):
         root = Tk()
         root.overrideredirect(True)
@@ -55,11 +55,11 @@ def check_installer_updates():
 
 
 def check_p_plus_updates(drive):
-    path = os.path.join(drive, "apps", "projplus", "meta.xml")
+    path = os.path.join(drive, 'apps', 'projplus', 'meta.xml')
     if p_plus_installed(drive):
         if os.path.exists(path):
             file = minidom.parse(path)
-            installed_version = file.getElementsByTagName("version")[0].firstChild.wholeText
+            installed_version = file.getElementsByTagName('version')[0].firstChild.wholeText
             if version.parse(installed_version) >= version.parse(P_PLUS_VERSION_NUMBER):
                 ask_to_delete_or_skip(drive, "Project+ is up to date.")
             else:
@@ -69,15 +69,15 @@ def check_p_plus_updates(drive):
 
 
 def p_plus_installed(drive) -> bool:
-    folder_path = os.path.join(drive, "Project+", "")
+    folder_path = os.path.join(drive, 'Project+', '')
     return os.path.exists(folder_path)
 
 
 def delete_files(drive):
-    rmtree(os.path.join(drive, "Project+", ""), True)
-    rmtree(os.path.join(drive, "private", "wii", "app", "RSBE", ""), True)
-    rmtree(os.path.join(drive, "apps", "projplus", ""), True)
-    elf_path = os.path.join(drive, "boot.elf")
+    rmtree(os.path.join(drive, 'Project+', ''), True)
+    rmtree(os.path.join(drive, 'private', 'wii', 'app', 'RSBE', ''), True)
+    rmtree(os.path.join(drive, 'apps', 'projplus', ''), True)
+    elf_path = os.path.join(drive, 'boot.elf')
     if os.path.isfile(elf_path):
         os.remove(elf_path)
 
@@ -228,9 +228,9 @@ def wrong_filesystem(filesystem) -> bool:
 
 
 def drive_not_removable(path) -> bool:
-    if os.name == "nt":         # Windows
+    if os.name == 'nt':         # Windows
         return drive_not_removable_windows(path)
-    elif os.name == "posix":    # Linux
+    elif os.name == 'posix':    # Linux
         return drive_not_removable_linux(path)
     else:
         return False
@@ -243,14 +243,14 @@ def drive_not_removable_windows(path) -> bool:
 def drive_not_removable_linux(path) -> bool:        # TODO pass the block device to this instead of the mount point
     # Check if the path is a block device.
     try:
-        with open("/sys/class/block/{}/removable".format(path), "r") as f:
+        with open('/sys/class/block/{}/removable'.format(path), 'r') as f:
             removable = f.read().strip()
             f.close()
     except FileNotFoundError:
         return False
 
     # Return True if the path is a block device and the device is removable.
-    return removable == "1"
+    return removable == '1'
 
 
 def get_eligible_drives() -> list:
