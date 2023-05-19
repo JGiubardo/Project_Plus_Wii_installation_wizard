@@ -7,7 +7,7 @@ block_cipher = None
 a = Analysis(
     ['extract.py'],
     pathex=[],
-    binaries=[('PPlus2.4.0.1.7z', 'files')],
+    binaries=[('PPlus2.4.1.7z', 'files')],
     datas=[('pplus.ico', 'files')],
     hiddenimports=[],
     hookspath=[],
