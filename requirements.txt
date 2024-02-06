@@ -1,6 +1,6 @@
 requests>=2.30.0
 packaging>=23.1
 future>=0.18.3
-psutil>=5.9.5
+psutil>=5.9.8
 py7zr>=0.20.5
 pywin32>=306

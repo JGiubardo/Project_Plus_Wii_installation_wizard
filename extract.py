@@ -11,20 +11,20 @@ from win32api import GetLogicalDriveStrings
 from win32file import GetDriveType
 from shutil import rmtree
 
-VERSION_NUMBER = 'v0.4.2'
-P_PLUS_VERSION_NUMBER = '2.4.2'
+VERSION_NUMBER = 'v0.5.0'
+P_PLUS_VERSION_NUMBER = '2.5.0'
 RELEASES_PAGE = "https://github.com/JGiubardo/Project_Plus_Wii_installation_wizard/releases/"
 RELEASES_PAGE_API = "https://api.github.com/repos/JGiubardo/Project_Plus_Wii_installation_wizard/releases"
 MAX_DRIVE_SIZE = 32 * 1024 * 1024 * 1024    # 32 GB in bytes
-REQUIRED_FREE_SPACE = 1791942656     # size in bytes of the extracted zip
+REQUIRED_FREE_SPACE = 1815000000     # size in bytes of the extracted zip
 ALLOWED_FILE_SYSTEMS = {'FAT32', 'FAT', 'FAT16'}
 REMOVABLE_DRIVE_TYPE = 2    # GetDriveType returns 2 if the drive is removable
 
 if getattr(sys, 'frozen', False):       # The program is being run as a pyinstaller executable
-    P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files', 'PPlus2.4.2.7z')
+    P_PLUS_ZIP = os.path.join(sys._MEIPASS, 'files', 'PPlus2.5.0.7z')
     PLUS_ICON = os.path.join(sys._MEIPASS, 'files', 'pplus.ico')
 else:                                   # The program is being run as a standalone python file
-    P_PLUS_ZIP = 'PPlus2.4.2.7z'
+    P_PLUS_ZIP = 'PPlus2.5.0.7z'
     PLUS_ICON = 'pplus.ico'
 """
 P_PLUS_ZIP = 'test.7z'   # lets you test the application with a test file to eliminate time to extract to the SD
